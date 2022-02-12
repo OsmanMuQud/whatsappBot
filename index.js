@@ -7,7 +7,7 @@ const SESSION_FILE_PATH = './session.json';
 const classLinks=require(`./links.json`);
 const schedule=require(`./schedule.json`);
 const {BCGroup, BCTeacher, appAdmin} = require(`./config.json`);
-const HMessages=['!hey','!hello','!hiii' ];
+const HMessages=['!hey', '!hello', '!hiii'];
 const hellos=2;
 const stickers=1;
 let sessionData='';
@@ -63,7 +63,8 @@ client.on('message', async (msg) => {
       `aIQm5yKs20cISWtbV8zPp0QMS19JL5CrwsxSYXeW/NA=`,
     ];
     if (HMessages.includes(msg.body.toLowerCase())) {
-      const media = await MessageMedia.fromFilePath(`./stickers/hello${1+Math.floor(Math.random()*hellos)}.jpg`);
+      const media = await MessageMedia.fromFilePath(`
+      ./stickers/hello${1+Math.floor(Math.random()*hellos)}.jpg`);
       chat.sendMessage(media, {
         quotedMessageId: msg.id._serialized,
         sendMediaAsSticker: true,
@@ -152,7 +153,8 @@ client.on('message', async (msg) => {
       } else if (msg.mentionedIds.length>0) {
         // promotes mentioned members
         chat.promoteParticipants(msg.mentionedIds);
-        const media = await MessageMedia.fromFilePath(`./stickers/promote${Math.floor(1+Math.random()*stickers)}.jpg`);
+        const media = await MessageMedia.fromFilePath(`
+        ./stickers/promote${Math.floor(1+Math.random()*stickers)}.jpg`);
         chat.sendMessage(media, {
           quotedMessageId: msg.id._serialized,
           sendMediaAsSticker: true,
