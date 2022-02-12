@@ -47,7 +47,9 @@ client.on('message', async (msg) => {
   } catch (err) {
     console.log(`Error`);
   }
-  if (chat.isGroup && chat.from===BCGroup && msg.author===BCTeacher&&msg.links[0].includes('meet.google.com')) {
+  if (chat.isGroup && chat.from===BCGroup &&
+     msg.author===BCTeacher&&
+     msg.links[0].includes('meet.google.com')) {
     classLinks.BCM=msg.links[0];
     fs.writeFile(`./links.json`, JSON.stringify(classLinks), (err) => {
       if (err) {
