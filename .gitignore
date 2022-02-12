@@ -3,4 +3,5 @@ schedule.json
 session.json
 config.json
 stickers/
+logs.txt
 node_modules/

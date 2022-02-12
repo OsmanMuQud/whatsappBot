@@ -59,14 +59,21 @@ client.on('message', async (msg) => {
     return;
   }
   if (chat) {
+    if (msg.body.startsWith('!')) {
+      const num=msg.author?`${msg.author}`:'';
+      fs.appendFile('./logs.txt', msg.timestamp+' : '+
+        msg.from+' : '+num+' : '+msg.body+'\n', (err)=>{
+        err&&console.log('FS invalid:'+err);
+      });
+    }
     const attendanceStickers=[
       `Z5zT1L0fwNTyTuED/L3Gio1GBMfojmjd8KRtjUglY28=`,
       `GZPPu88y1lSQ2lBO1pMydOzHch3CkLVWEqHeRUzQlOU=`,
       `aIQm5yKs20cISWtbV8zPp0QMS19JL5CrwsxSYXeW/NA=`,
     ];
     if (HMessages.includes(msg.body.toLowerCase())) {
-      const media = await MessageMedia.fromFilePath(`
-      ./stickers/hello${1+Math.floor(Math.random()*hellos)}.jpg`);
+      const media = await MessageMedia.fromFilePath(
+          `./stickers/hello${1+Math.floor(Math.random()*hellos)}.jpg`);
       chat.sendMessage(media, {
         quotedMessageId: msg.id._serialized,
         sendMediaAsSticker: true,
@@ -79,10 +86,10 @@ client.on('message', async (msg) => {
           .then((data) => {
             if (!data.flags.nsfw) {
               if (data.type==='twopart' || Math.random()>0.8) {
-                msg.reply(data.setup);
+                msg.reply('*'+data.setup+'*');
                 chat.sendMessage(data.delivery);
               } else {
-                msg.reply(data.joke);
+                msg.reply('*'+data.joke+'*');
               }
             } else if (data.type==='single') {
               try {
@@ -130,23 +137,22 @@ client.on('message', async (msg) => {
           msg.reply(`${classLinks[`NON`]}`);
         }
       } else if (content[1]=='-h') {
-        chat.sendMessage(`
-        Class abbreviation\n\n
-        AFL\tCOA\tPDC\n
-        DMT\tOST\tWTT\t:THEORYs\n
-        DML\tOSL\tWTL\t:LABs`,
-        );
+        chat.sendMessage(
+            '>```*Class abbreviation*```<\n'+
+          'AFL  \t\t|\t COA \t|\t PDC \t|\n'+
+          'DMT \t|\t OST \t|\t WTT \t|\t :THEORYs\n'+
+          'DML \t|\t OSL \t|\t WTL \t|\t :LABs');
       } else if (classLinks[content[1].toUpperCase()]) {
         msg.reply(
-            `current class\n
-            ${content[1].toUpperCase()}:
-            ${classLinks[content[1].toUpperCase()]}`);
+            'requested link\n'+(content[1].toUpperCase())+':'+
+            (classLinks[content[1].toUpperCase()]),
+        );
       } else {
         chat.sendMessage(
-            `Class abbreviation\n\n
-        AFL\tCOA\tPDC\n
-        DMT\tOST\tWTT\t:THEORYs\n
-        DML\tOSL\tWTL\t:LABs`);
+            '>```Class abbreviation```<\n'+
+        'AFL  \t\t|\t COA \t|\t PDC \t|\n'+
+        'DMT \t|\t OST \t|\t WTT \t|\t :THEORYs\n'+
+        'DML \t|\t OSL \t|\t WTL \t|\t :LABs');
       }
     } else if (chat.isGroup && msg.body.startsWith('!promote')) {
       if (!adminCheck(msg, chat) && msg.author!==appAdmin) {
@@ -203,7 +209,7 @@ client.on('message', async (msg) => {
           await chat.revokeInviteCode();
           chat.sendMessage(`Link reset!😎😏`);
         } catch (err) {
-          chat.sendMessage(`Link not reset`);
+          chat.sendMessage(`Link not reset:`+err);
         }
       }
     } else if (chat.isGroup && msg.body.startsWith('!invitelink')) {
