@@ -45,7 +45,7 @@ client.on('message', async (msg) => {
   try {
     chat = await msg.getChat();
   } catch (err) {
-    console.log(`Error`);
+    console.log(`Didnt get message`);
   }
   if (chat && chat.isGroup && chat.from === BCGroup &&
     msg.author === BCTeacher && msg.links &&
@@ -59,6 +59,7 @@ client.on('message', async (msg) => {
     return;
   }
   if (msg.from === appAdmin && msg.body.startsWith('!join ') &&
+
     msg.links && msg.links[0].link.includes('chat.whatsapp.com')) {
     const invCode = msg.links[0].link.split('/').pop();
     try {
@@ -133,12 +134,11 @@ client.on('message', async (msg) => {
           media = 'Quoted file is not image☹️😓';
         }
       } else if (mentions) {
-        for (let contact of mentions) {
+        for (const contact of mentions) {
           try {
             const urlPic = await contact.getProfilePicUrl();
             media = await MessageMedia.fromUrl(urlPic);
-          }
-          catch (err) {
+          } catch (err) {
             media = 'contack has\'nt saved my number.😭😭beep boop';
           }
         }
@@ -157,7 +157,8 @@ client.on('message', async (msg) => {
         'DMT \t|\t OST \t|\t WTT \t|\t :THEORYs\n\n' +
         'DML \t|\t OSL \t|\t WTL \t|\t :LABs\n\n' +
         '*!joke*\t:\ttells a joke\n\n' +
-        '*!sticker*\t:\tconverts image into stickers\n@mention someone (ask then to save the bots number)\n' +
+        '*!sticker*\t:\tconverts image into stickers\n' +
+        '@mention someone (ask then to save the bots number)\n' +
         '*!all*\t:\t mention all   --works only in groups\n\n' +
         '*ADMIN COMMANDS* --works only in groups\n\n' +
         '*!add phoneno*\t\t:\tadds the number to the group\n\n' +
@@ -182,6 +183,21 @@ client.on('message', async (msg) => {
         chat.sendMessage(`Hi Everyone😁👻,\n please look at this!!`, {
           quotedMessageId: quotedMsg.id._serialized.toString(),
           mentions: chat.groupMetadata.participants,
+        });
+      } else {
+        chat.sendMessage(`Hi Everyone😁👻, pay attention!!`, {
+          quotedMessageId: msg.id._serialized.toString(),
+          mentions: chat.groupMetadata.participants,
+        });
+      }
+    } else if (chat.isGroup && msg.body.startsWith('!admins')) {
+      const admins = chat.groupMetadata.participants.filter(
+        (part) => adminCheck(part.author, chat));
+      if (msg.hasQuotedMsg) {
+        const quotedMsg = await msg.getQuotedMessage();
+        chat.sendMessage(`Hi Everyone😁👻,\n please look at this!!`, {
+          quotedMessageId: quotedMsg.id._serialized.toString(),
+          mentions: admins,
         });
       } else {
         chat.sendMessage(`Hi Everyone😁👻, pay attention!!`, {
@@ -219,7 +235,7 @@ client.on('message', async (msg) => {
           'DML \t|\t OSL \t|\t WTL \t|\t :LABs');
       }
     } else if (chat.isGroup && msg.body.startsWith('!promote')) {
-      if (!adminCheck(msg, chat) && msg.author !== appAdmin) {
+      if (!adminCheck(msg.author, chat) && msg.author !== appAdmin) {
         // message for non admins
         chat.sendMessage(`Sorry, only admins can use this command.😥😭🥲`);
       } else if (msg.mentionedIds.length > 0) {
@@ -232,12 +248,12 @@ client.on('message', async (msg) => {
           sendMediaAsSticker: true,
         });
         msg.reply('promoted');
-      } else if (!adminCheck(msg, chat) && msg.author === appAdmin) {
+      } else if (!adminCheck(msg.author, chat) && msg.author === appAdmin) {
         // promotes app admin(bypass)
         chat.promoteParticipants([msg.author]);
       }
     } else if (chat.isGroup && msg.body.startsWith('!demote')) {
-      if ((!adminCheck(msg, chat) && msg.author !== appAdmin) ||
+      if ((!adminCheck(msg.author, chat) && msg.author !== appAdmin) ||
         (msg.mentionedIds.includes(appAdmin) ||
           msg.mentionedIds.includes(appBot))) {
         // message for non admins
@@ -252,7 +268,7 @@ client.on('message', async (msg) => {
         msg.reply('demoted');
       }
     } else if (chat.isGroup && msg.body.startsWith('!invite ')) {
-      if (!adminCheck(msg, chat) && msg.author !== appAdmin) {
+      if (!adminCheck(msg.author, chat) && msg.author !== appAdmin) {
         chat.sendMessage(`Sorry, only admins can use this command.😥😭🥲`);
       } else {
         let number = msg.body.split(' ')[1];
@@ -267,7 +283,7 @@ client.on('message', async (msg) => {
         }
       }
     } else if (chat.isGroup && msg.body.startsWith('!reset')) {
-      if (!adminCheck(msg, chat) && msg.author !== appAdmin) {
+      if (!adminCheck(msg.author, chat) && msg.author !== appAdmin) {
         chat.sendMessage(`Sorry, only admins can use this command.😥😭🥲`);
       } else {
         try {
@@ -278,7 +294,7 @@ client.on('message', async (msg) => {
         }
       }
     } else if (chat.isGroup && msg.body.startsWith('!invitelink')) {
-      if (!adminCheck(msg, chat) && msg.author !== appAdmin) {
+      if (!adminCheck(msg.author, chat) && msg.author !== appAdmin) {
         chat.sendMessage(`Sorry, only admins can use this command.😥😭🥲`);
       } else {
         try {
@@ -290,7 +306,7 @@ client.on('message', async (msg) => {
         }
       }
     } else if (chat.isGroup && msg.body.startsWith('!add')) {
-      if (!adminCheck(msg, chat) && msg.author !== appAdmin) {
+      if (!adminCheck(msg.author, chat) && msg.author !== appAdmin) {
         chat.sendMessage(`Sorry, only admins can use this command.😥😭🥲`);
       } else {
         let number = msg.body.split(' ')[1];
@@ -305,7 +321,7 @@ client.on('message', async (msg) => {
       }
     } else if (chat.isGroup && msg.body.startsWith('!remove')) {
       const number = msg.mentionedIds;
-      if ((!adminCheck(msg, chat) && msg.author !== appAdmin) ||
+      if ((!adminCheck(msg.author, chat) && msg.author !== appAdmin) ||
         (number.includes(appAdmin) || number.includes(appBot))) {
         chat.sendMessage(`Sorry, you don't have privilages.😥😭🥲`);
       } else {
@@ -329,17 +345,16 @@ client.on('message', async (msg) => {
 });
 /**
 *this function checks if the sender is an admin or not
-*@param {WAWebJS.Message} message message received
+*@param {string} author message received
 *@param {WAWebJS.Chat} chat chat on which the bot is
 *@return {boolean} if the sender is admin
 */
-function adminCheck(message, chat) {
+function adminCheck(author, chat) {
   if (!chat.isGroup) {
     return false;
   }
-  const authorId = message.author;
   for (const participant of chat.participants) {
-    if (participant.id._serialized === authorId && !participant.isAdmin) {
+    if (participant.id._serialized === author && !participant.isAdmin) {
       return false;
     }
   }
