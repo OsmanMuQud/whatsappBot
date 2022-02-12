@@ -47,7 +47,7 @@ client.on('message', async (msg) => {
   } catch (err) {
     console.log(`Error`);
   }
-  if (chat.isGroup && chat.from === BCGroup &&
+  if (chat && chat.isGroup && chat.from === BCGroup &&
     msg.author === BCTeacher && msg.links &&
     msg.links[0].includes('meet.google.com')) {
     classLinks.BCM = msg.links[0];
@@ -116,22 +116,30 @@ client.on('message', async (msg) => {
           }
         });
     }
-    if (msg.body === '!sticker') {
+    if (msg.body.startsWith('!sticker')) {
       let media = 'Please attach image😅';
+      const mentions = await msg.getMentions();
+      const quotedMsg = await msg.getQuotedMessage();
       if (msg.hasMedia) {
         if ('image' === msg.type) {
           media = await msg.downloadMedia();
         } else {
           media = 'Please attach image☹️😓';
         }
-      } else if (msg.hasQuotedMsg) {
-        const quotedMsg = await msg.getQuotedMessage();
-
-        if (quotedMsg.hasMedia) {
-          if ('image' === quotedMsg.type) {
-            media = await quotedMsg.downloadMedia();
-          } else {
-            media = 'Quoted file is not image☹️😓';
+      } else if (msg.hasQuotedMsg && quotedMsg.hasMedia) {
+        if ('image' === quotedMsg.type) {
+          media = await quotedMsg.downloadMedia();
+        } else {
+          media = 'Quoted file is not image☹️😓';
+        }
+      } else if (mentions) {
+        for (let contact of mentions) {
+          try {
+            const urlPic = await contact.getProfilePicUrl();
+            media = await MessageMedia.fromUrl(urlPic);
+          }
+          catch (err) {
+            media = 'contack has\'nt saved my number.😭😭beep boop';
           }
         }
       }
@@ -139,6 +147,29 @@ client.on('message', async (msg) => {
         sendMediaAsSticker: true,
       });
     }
+
+    if (msg.body === '!help') {
+      const menu = '.        *BotBot MENU*        \n\n' +
+        '*!hey/hello/hiii* \t:\tpings back\n\n' +
+        '*!link <classcode>*\t:\t gives class link\n\n' +
+        '       >```*Class Codes*```<\n\n' +
+        'AFL  \t\t|\t COA \t|\t PDC \t|\t BCM\n\n' +
+        'DMT \t|\t OST \t|\t WTT \t|\t :THEORYs\n\n' +
+        'DML \t|\t OSL \t|\t WTL \t|\t :LABs\n\n' +
+        '*!joke*\t:\ttells a joke\n\n' +
+        '*!sticker*\t:\tconverts image into stickers\n@mention someone (ask then to save the bots number)\n' +
+        '*!all*\t:\t mention all   --works only in groups\n\n' +
+        '*ADMIN COMMANDS* --works only in groups\n\n' +
+        '*!add phoneno*\t\t:\tadds the number to the group\n\n' +
+        '*!remove @mention*\t:\tremoves mentioned people\n\n' +
+        '*!promote @mention*\t:\tpromotes mentioned people\n\n' +
+        '*!demote @mention*\t:\tdemotes mentioned people\n\n' +
+        'Just a friendly bot.👻🤪';
+
+
+      chat.sendMessage(menu);
+    }
+
     if (msg.mediaKey) {
       if (chat.isGroup && attendanceStickers.includes(msg.mediaKey)) {
         chat.sendMessage(`Hi Everyone😁👻, attendance!!`, {
