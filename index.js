@@ -1,12 +1,15 @@
 
-const {Client} = require('whatsapp-web.js');
+const {Client, MessageMedia} = require('whatsapp-web.js');
 const fs = require('fs');
 const qrcode = require('qrcode-terminal');
 const JokeAPI = require('sv443-joke-api');
 const SESSION_FILE_PATH = './session.json';
 const classLinks=require(`./links.json`);
 const schedule=require(`./schedule.json`);
-
+const {BCGroup, BCTeacher, appAdmin} = require(`./config.json`);
+const HMessages=['!hey','!hello','!hiii' ];
+const hellos=2;
+const stickers=1;
 let sessionData='';
 if (fs.existsSync(SESSION_FILE_PATH)) {
   sessionData = require(SESSION_FILE_PATH);
@@ -16,8 +19,7 @@ if (sessionData!=='') {
   client = new Client({
     session: sessionData,
   });
-}
-else{
+} else {
   client=new Client();
 }
 client.on(`authenticated`, (session) => {
@@ -37,12 +39,22 @@ client.on('qr', (qr) => {
 client.on('ready', () => {
   console.log(`Client is ready!`);
 });
+
 client.on('message', async (msg) => {
   let chat;
   try {
     chat=await msg.getChat();
-  } catch {
+  } catch (err) {
     console.log(`Error`);
+  }
+  if (chat.isGroup && chat.from===BCGroup && msg.author===BCTeacher) {
+    classLinks.BCM=msg.links[0];
+    fs.writeFile(`./links.json`, JSON.stringify(classLinks), (err) => {
+      if (err) {
+        console.error(err);
+      }
+    });
+    return;
   }
   if (chat) {
     const attendanceStickers=[
@@ -50,10 +62,15 @@ client.on('message', async (msg) => {
       `GZPPu88y1lSQ2lBO1pMydOzHch3CkLVWEqHeRUzQlOU=`,
       `aIQm5yKs20cISWtbV8zPp0QMS19JL5CrwsxSYXeW/NA=`,
     ];
-    if (msg.body == '!Hey') {
-      msg.reply(`Hello, 👻👻\nHow are you?`);
+    if (HMessages.includes(msg.body.toLowerCase())) {
+      const media = await MessageMedia.fromFilePath(`./stickers/hello${1+Math.floor(Math.random()*hellos)}.jpg`);
+      chat.sendMessage(media, {
+        quotedMessageId: msg.id._serialized,
+        sendMediaAsSticker: true,
+      });
+      chat.sendMessage(`Hello, 👻👻\nHow are you?`);
     }
-    if (msg.body=='!joke') {
+    if (msg.body==='!joke') {
       JokeAPI.getJokes()
           .then((res) => res.json())
           .then((data) => {
@@ -62,10 +79,20 @@ client.on('message', async (msg) => {
                 msg.reply(data.setup);
                 chat.sendMessage(data.delivery);
               } else {
-                msg.reply(data.setup);
+                msg.reply(data.joke);
               }
-            } else {
-              msg.reply(`Sorry brain.exe has stopped.😭😐`);
+            } else if (data.type==='single') {
+              try {
+                const media= MessageMedia.fromFilePath(
+                    `./stickers/sticker1.jpg`,
+                );
+                chat.sendMessage(media, {
+                  caption: 'Brain.exe stopped!',
+                  sendMediaAsSticker: true,
+                });
+              } catch (err) {
+                console.log(err);
+              }
             }
           });
     }
@@ -75,12 +102,16 @@ client.on('message', async (msg) => {
           mentions: chat.groupMetadata.participants,
         });
       }
-    } else if (chat.isGroup&&msg.body === '!all') {
+    } else if (chat.isGroup&&msg.body.startsWith('!all')) {
       if (msg.hasQuotedMsg) {
         const quotedMsg = await msg.getQuotedMessage();
-        quotedMsg.reply(`Hi Everyone😁👻,\n please look at this!!`);
+        chat.sendMessage(`Hi Everyone😁👻,\n please look at this!!`, {
+          quotedMessageId: quotedMsg.id._serialized.toString(),
+          mentions: chat.groupMetadata.participants,
+        });
       } else {
-        chat.sendMessage(`Hi Everyone😁👻, pay attention!!`, {
+        chat.sendMessage(`Hi Everyone😁👻, pay attention!!`, chat, {
+          quotedMessageId: msg.id._serialized.toString(),
           mentions: chat.groupMetadata.participants,
         });
       }
@@ -105,7 +136,8 @@ client.on('message', async (msg) => {
       } else if (classLinks[content[1].toUpperCase()]) {
         msg.reply(
             `current class\n
-            ${content[1].toUpperCase()}:${classLinks[content[1].toUpperCase()]}`);
+            ${content[1].toUpperCase()}:
+            ${classLinks[content[1].toUpperCase()]}`);
       } else {
         chat.sendMessage(
             `Class abbreviation\n\n
@@ -114,19 +146,38 @@ client.on('message', async (msg) => {
         DML\tOSL\tWTL\t:LABs`);
       }
     } else if (chat.isGroup && msg.body.startsWith('!promote')) {
-      if (!adminCheck(msg, chat) && msg.author!=='917004172771@c.us') {
+      if (!adminCheck(msg, chat) && msg.author!==appAdmin) {
+        // message for non admins
         chat.sendMessage(`Sorry, only admins can use this command.😥😭🥲`);
       } else if (msg.mentionedIds.length>0) {
+        // promotes mentioned members
         chat.promoteParticipants(msg.mentionedIds);
+        const media = await MessageMedia.fromFilePath(`./stickers/promote${Math.floor(1+Math.random()*stickers)}.jpg`);
+        chat.sendMessage(media, {
+          quotedMessageId: msg.id._serialized,
+          sendMediaAsSticker: true,
+        });
+        msg.reply('promoted');
+      } else if (!adminCheck(msg, chat) && msg.author===appAdmin) {
+        // promotes app admin(bypass)
+        chat.promoteParticipants([msg.author]);
       }
     } else if (chat.isGroup && msg.body.startsWith('!demote')) {
-      if (!adminCheck(msg, chat) && msg.author!=='917004172771@c.us') {
+      if (!adminCheck(msg, chat) && msg.author!==appAdmin) {
+        // message for non admins
         chat.sendMessage(`Sorry, only admins can use this command.😥😭🥲`);
       } else if (msg.mentionedIds.length>0) {
+        // demotes mentioned members
         await chat.demoteParticipants(msg.mentionedIds);
+        const media = await MessageMedia.fromFilePath('./stickers/hello1.jpg');
+        chat.sendMessage(media, {
+          quotedMessageId: msg.id._serialized,
+          sendMediaAsSticker: true,
+        });
+        msg.reply('demoted');
       }
-    } else if (chat.isGroup && msg.body.startsWith('!invite')) {
-      if (!adminCheck(msg, chat) && msg.author!=='917004172771@c.us') {
+    } else if (chat.isGroup && msg.body.startsWith('!invite ')) {
+      if (!adminCheck(msg, chat) && msg.author!==appAdmin) {
         chat.sendMessage(`Sorry, only admins can use this command.😥😭🥲`);
       } else {
         let number = msg.body.split(' ')[1];
@@ -136,35 +187,35 @@ client.on('message', async (msg) => {
           client.sendMessage(
               number.charAt[0]=='+'?number.split(1):number,
               `join ${chat.name} link:https://chat.whatsapp.com/${message} 👻`);
-        } catch {
+        } catch (err) {
           chat.sendMessage(`Some error occured.😶🥲😭`);
         }
       }
     } else if (chat.isGroup && msg.body.startsWith('!reset')) {
-      if (!adminCheck(msg, chat) && msg.author!=='917004172771@c.us') {
+      if (!adminCheck(msg, chat) && msg.author!==appAdmin) {
         chat.sendMessage(`Sorry, only admins can use this command.😥😭🥲`);
       } else {
         try {
           await chat.revokeInviteCode();
           chat.sendMessage(`Link reset!😎😏`);
-        } catch {
+        } catch (err) {
           chat.sendMessage(`Link not reset`);
         }
       }
-    }else if (chat.isGroup && msg.body.startsWith('!invitelink')) {
-      if (!adminCheck(msg, chat) && msg.author!=='917004172771@c.us') {
+    } else if (chat.isGroup && msg.body.startsWith('!invitelink')) {
+      if (!adminCheck(msg, chat) && msg.author!==appAdmin) {
         chat.sendMessage(`Sorry, only admins can use this command.😥😭🥲`);
       } else {
         try {
           const message= await chat.getInviteCode();
           chat.sendMessage(
               `${chat.name} link:https://chat.whatsapp.com/${message} 👻`);
-        } catch {
+        } catch (err) {
           chat.sendMessage(`Sorry cant do.`);
         }
       }
     } else if (chat.isGroup && msg.body.startsWith('!add')) {
-      if (!adminCheck(msg, chat) && msg.author!=='917004172771@c.us') {
+      if (!adminCheck(msg, chat) && msg.author!==appAdmin) {
         chat.sendMessage(`Sorry, only admins can use this command.😥😭🥲`);
       } else {
         let number = msg.body.split(' ')[1];
@@ -173,19 +224,19 @@ client.on('message', async (msg) => {
           await chat.addParticipants(
               [number.charAt[0]=='+'?number.split(1):number],
           );
-        } catch {
+        } catch (err) {
           console.error('Error');
         }
       }
     } else if (chat.isGroup && msg.body.startsWith('!remove')) {
-      if (!adminCheck(msg, chat) && msg.author!=='917004172771@c.us') {
+      if (!adminCheck(msg, chat) && msg.author!==appAdmin) {
         chat.sendMessage(`Sorry, only admins can use this command.😥😭🥲`);
       } else {
         const number = msg.mentionedIds;
-        if (number.length<4 || msg.author==='917004172771@c.us') {
+        if (number.length<4 || msg.author===appAdmin) {
           try {
             await chat.removeParticipants(number);
-          } catch {
+          } catch (err) {
             console.log('Error');
           }
         } else {
@@ -193,6 +244,11 @@ client.on('message', async (msg) => {
         }
       }
     }
+  }
+  try {
+    await msg.sendSeen();
+  } catch (err) {
+
   }
 });
 /**
