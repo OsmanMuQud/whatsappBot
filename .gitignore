@@ -1,4 +1,6 @@
 ./links.json
 ./schedule.json
+./session.json
 ./config.js
+stickers/
 node_modules/
