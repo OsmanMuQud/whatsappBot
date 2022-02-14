@@ -6,7 +6,7 @@ const JokeAPI = require('sv443-joke-api');
 const SESSION_FILE_PATH = './session.json';
 const classLinks = require(`./links.json`);
 const schedule = require(`./schedule.json`);
-const menu = require(`./menu.json`)
+const menu = require(`./menu.json`);
 const { BCGroup, BCTeacher, appAdmin, appBot } = require(`./config.json`);
 const helloMessage = ['!hey', '!hello', '!hiii'];
 const helloReplies = [
@@ -36,7 +36,7 @@ let client;
 // starting saved session
 if (sessionData !== '') {
   client = new Client({
-    session: sessionData
+    session: sessionData,
   });
 } else {
   client = new Client();
@@ -67,6 +67,7 @@ client.on('message', async (msg) => {
   } catch (err) {
     console.log(err);
     console.log(`Didnt get message`);
+    console.log(msg);
   }
   if (chat && chat.isGroup && chat.from === BCGroup &&
     msg.author === BCTeacher && msg.links &&
@@ -121,7 +122,7 @@ client.on('message', async (msg) => {
       JokeAPI.getJokes() // api call
         .then((res) => res.json())
         .then((data) => {
-          if (!data.flags.nsfw || Math.random() < 0.95) {
+          if (!data.flags.nsfw && Math.random() < 0.005) {
             // avoids nfsw jokes random chance of fake crash
             if (data.type === 'twopart') {
               msg.reply('*' + data.setup + '*');
@@ -208,9 +209,8 @@ client.on('message', async (msg) => {
                   'media': media,
                   'from': msg.from,
                 };
-              }
-              else {
-                status = 'videos/gifs not supported.\nSorry😭😓'
+              } else {
+                status = 'videos/gifs not supported.\nSorry😭😓';
               }
             } else {
               status = 'File name already exists🥲';
@@ -241,8 +241,7 @@ client.on('message', async (msg) => {
           media = savedMedia[name].media;
           try {
             msg.reply(media);
-          }
-          catch (err) {
+          } catch (err) {
             status = 'Trouble sending the file.';
             console.log(err);
           }
@@ -263,8 +262,9 @@ client.on('message', async (msg) => {
             (savedMedia[file].from === msg.from).toString() + '\n\n';
         }
       }
-      if (savedFiles === '')
+      if (savedFiles === '') {
         savedFiles = 'Nothing is saved!😐☹️';
+      }
       msg.reply(savedFiles);
     } else if (
       (msg.author === appAdmin ||
