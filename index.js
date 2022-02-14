@@ -65,6 +65,7 @@ client.on('message', async (msg) => {
   try {
     chat = await msg.getChat();
   } catch (err) {
+    console.log(err);
     console.log(`Didnt get message`);
   }
   if (chat && chat.isGroup && chat.from === BCGroup &&
@@ -175,7 +176,7 @@ client.on('message', async (msg) => {
               // gets profile pic of each contact
               media = await MessageMedia.fromUrl(urlPic);
             } catch (err) {
-              media = 'contack has\'nt saved my number.😭😭beep boop';
+              media = 'contact has\'nt saved my number.😭😭beep boop';
             }
           }
         }
@@ -253,22 +254,24 @@ client.on('message', async (msg) => {
       }
       chat.sendMessage(status);
     } else if (msg.body.startsWith('!showfiles')) {
-      let savedFiles = 'Nothing is saved!😐☹️';
+      let savedFiles = '';
       for (const file in savedMedia) {
         if (savedMedia.hasOwnProperty(file)) {
-          savedFiles = '*' + file + '*' + ' : ' +
+          savedFiles += '*' + file + '*' + ' : ' +
             savedMedia[file].media.mimetype + '\n' +
             'available here : ' +
             (savedMedia[file].from === msg.from).toString() + '\n\n';
         }
       }
+      if (savedFiles === '')
+        savedFiles = 'Nothing is saved!😐☹️';
       msg.reply(savedFiles);
     } else if (
       (msg.author === appAdmin ||
         msg.from === appAdmin) &&
       msg.body.startsWith('!delete ')) {
-      const name = msg.body.slice(9);
-      if (savedMedia.hasOwnProperty(file)) {
+      const name = msg.body.slice(8);
+      if (savedMedia.hasOwnProperty(name)) {
         delete savedMedia[name];
         msg.reply(name + ' deleted successfully.😏');
       } else {
@@ -309,10 +312,11 @@ client.on('message', async (msg) => {
       const content = msg.body.split(' ');
       if (content.length === 1) {
         const today = new Date();// gets current day time
-        hour = today.getHours();
-        if (hour < 18 && hour > 7 && today < 6) {
+        const hour = today.getHours();
+        const day = today.getDay();
+        if (hour < 18 && hour > 7 && day < 6) {
           // checks if the time if in the college time
-          const cclass = schedule[1][(hour - 8) < 0 ? 0 : hour - 8];
+          const cclass = schedule[day][(hour - 8) < 0 ? 0 : hour - 8];
           // fetches classCode from schedule
           msg.reply(`\`\`\`current class\`\`\`` +
             `(${cclass}) :${classLinks[cclass]}`);
